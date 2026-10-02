@@ -1,0 +1,10 @@
+services:
+  echo:
+    build: ./echo-service
+    environment:
+      SERVICE_NAME: echo
+
+  client:
+    build: ./client
+    depends_on:
+      - echo
