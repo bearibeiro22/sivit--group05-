@@ -1,0 +1,6 @@
+<!doctype html><html><head><meta charset="utf-8"><title>SIVIT</title></head><body>
+<h1>SIVIT - dashboard ({{ version }})</h1>
+<p>Versoes: <a href="?v=naive">naive</a> | <a href="?v=select">select_related</a> | <a href="?v=prefetch">prefetch</a> | <a href="?v=subquery">subquery</a></p>
+<table border="1" cellpadding="4"><tr><th>Doente</th><th>Ala</th><th>Dispositivo</th><th>Ultimo valor</th><th>Instante</th></tr>
+{% for r in rows %}<tr><td>{{ r.0 }}</td><td>{{ r.1 }}</td><td>{{ r.2 }}</td><td>{{ r.3 }}</td><td>{{ r.4 }}</td></tr>{% endfor %}
+</table></body></html>
