@@ -1,4 +1,5 @@
 services:
+<<<<<<< HEAD
   sivitDB:
     image: postgres:16-alpine
     environment:
@@ -35,3 +36,14 @@ services:
 volumes:
   db_data:
   static_volume:
+=======
+  echo:
+    build: ./echo-service
+    environment:
+      SERVICE_NAME: echo
+
+  client:
+    build: ./client
+    depends_on:
+      - echo
+>>>>>>> 9fbee32345026d1cd40d8d0edf419353265caf5a
