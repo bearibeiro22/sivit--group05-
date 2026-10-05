@@ -53,8 +53,16 @@ apenas o abranda.
 pode consumir).
 
 ## Exercício 2 · A primeira imagem
-
-(a fazer)
+respostas obtidas no terminal:
+$ curl localhost:8000 echo1 on 3381f08e3df9 at 1791237053.854
+$ curl localhost:8000 echo2 on a8b5fcc8ae3d at 1791237104.856
+O serviço é stateless: não guarda nenhum estado entre pedidos (nem base de dados, nem
+ficheiros, nem dados em memória), e cada resposta depende só do pedido e do contentor que a dá. Por isso, as duas réplicas, criadas a partir da mesma imagem, são intercambiáveis: diferem
+apenas no nome (variável de ambiente `SERVICE_NAME`) e na porta do host (8000 e 8001), e
+qualquer uma pode responder a qualquer pedido. Os hostnames diferentes (`3381f08e3df9` e `a8b5fcc8ae3d`) confirmam que são contentores distintos da mesma imagem. Ambos escutam na
+porta 8000 interna sem conflito, porque cada contentor tem o seu próprio namespace de rede.
+Se o serviço guardasse estado, cada réplica teria uma versão diferente dos dados e seria
+preciso sincronizá-las, o que tornaria a replicação muito mais difícil.
 
 ## Exercício 4 · Medir a falácia n.º 2
 
