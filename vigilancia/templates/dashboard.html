@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>SIVIT Dashboard</title>
+</head>
+<body>
+    <h1>Dashboard de Admissões</h1>
+    <p>Total de Queries (Consultas DB): <strong>{{ query_count }}</strong></p>
+    <p>Tempo de Execução: <strong>{{ total_time }} ms</strong></p>
+    
+    <ul>
+    {% for patient, device, reading in rows %}
+        <li><strong>{{ patient }}</strong> - {{ device }} 
+    (Última leitura: {% if reading is not None %}{{ reading }}{% else %}Nenhuma{% endif %})
+        </li>  
+    {% endfor %}
+    </ul>
+</body>
+</html>
