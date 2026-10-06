@@ -1,0 +1,35 @@
+services:
+  sivitDB:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: sivit
+      POSTGRES_USER: sivit
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-devpass}
+    volumes:
+      - db_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U sivit"]
+      interval: 5s
+      retries: 10
+  portal:
+    build: ./portal
+    environment:
+      DATABASE_URL: postgres://sivit:${POSTGRES_PASSWORD:-devpass}@sivitDB:5432/sivit
+    volumes:
+      - ./portal:/app
+      - static:/var/www/static
+    depends_on:
+      sivitDB:
+        condition: service_healthy
+  nginx:
+    image: nginx:alpine
+    ports:
+      - "8080:80"
+    volumes:
+      - ./nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
+      - static:/var/www/static:ro
+    depends_on:
+      - portal
+volumes:
+  db_data:
+  static:
