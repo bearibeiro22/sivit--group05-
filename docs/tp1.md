@@ -25,7 +25,7 @@ Quando a aplicação Python tenta alocar 200MB de memória num ambiente com o li
 
 **Q: Replicating took one command. Which property of this service made that trivial?**
 
-O serviço é *stateless* (não guarda estado localmente), o que permite criar múltiplas instâncias idênticas em paralelo sem conflitos de dados. Podes apontar esta resposta para juntares à documentação do trabalho.
+O serviço é *stateless* (não guarda estado localmente), o que permite criar múltiplas instâncias idênticas em paralelo sem conflitos de dados. 
 
 ---
 
