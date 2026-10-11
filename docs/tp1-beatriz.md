@@ -64,6 +64,52 @@ porta 8000 interna sem conflito, porque cada contentor tem o seu próprio namesp
 Se o serviço guardasse estado, cada réplica teria uma versão diferente dos dados e seria
 preciso sincronizá-las, o que tornaria a replicação muito mais difícil.
 
+## Exercício 3 · Compose e comunicação por nome
+
+Ficheiros: `beatriz/docker-compose.yml` (igual ao do enunciado), `beatriz/client/names.py`.
+O cliente fala sempre com `http://echo:8000/`, um nome e não um IP. O `names.py` mostra para
+que IPs o nome `echo` resolve e quem responde a 30 pedidos seguidos.
+
+**Com uma réplica** (`docker compose up -d --build echo`):
+
+```
+O nome 'echo' resolve para 1 IP(s): 172.18.0.2
+Pedidos atendidos por cada contentor:
+  2c95aa624527: 30
+```
+
+**Com três réplicas** (`docker compose up -d --scale echo=3 echo`):
+
+```
+O nome 'echo' resolve para 3 IP(s): 172.18.0.2, 172.18.0.3, 172.18.0.4
+Pedidos atendidos por cada contentor:
+  0ca7aee38557: 13
+  2c95aa624527: 8
+  64f35830a161: 9
+```
+
+O Compose cria uma rede própria (`beatriz_default`) com um servidor de DNS interno, que
+traduz o nome do serviço (`echo`) para os IPs dos seus contentores. Com uma réplica, o nome
+resolve para um só IP e todos os pedidos vão para o mesmo contentor (`2c95aa624527`). Depois
+do `--scale echo=3`, o mesmo nome passa a resolver para 3 IPs e os 30 pedidos ficam
+repartidos pelos 3 contentores (13 / 8 / 9). O contentor original continua a ser um deles.
+A repartição não é exatamente igual porque quem a faz é o DNS, que muda a ordem dos IPs em
+cada consulta: é uma distribuição simples, não um balanceador de carga com estado.
+
+O código do cliente não mudou. Mudou só uma opção, e o mesmo nome passou a apontar para três
+réplicas: é a nomeação (B5) e a distribuição de carga (B3) de que fala o enunciado. Isto só
+funciona porque o serviço é stateless (exercício 2): qualquer réplica pode responder a
+qualquer pedido.
+
+Notas:
+- O `docker-compose.yml` não tem portas fixas: com `ports: "8000:8000"`, as réplicas 2 e 3
+  falham com "port is already allocated", porque só um contentor pode usar a porta 8000 do
+  host. A porta para medir o `localhost` (exercício 4) ficou em
+  `docker-compose.localhost.yml`:
+  `docker compose -f docker-compose.yml -f docker-compose.localhost.yml up -d echo`.
+- O cliente corre com `docker compose run --no-deps`: sem o `--no-deps`, o `run` voltaria a
+  pôr o `echo` com 1 réplica antes de arrancar o cliente.
+
 ## Exercício 4 · Medir a falácia n.º 2
 
 Plataforma: Windows com Docker Desktop (backend WSL2). O `localhost` foi medido a partir do
