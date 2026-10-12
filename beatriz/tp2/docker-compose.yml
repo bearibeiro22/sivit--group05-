@@ -1,0 +1,29 @@
+services:
+  sivitDB:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: sivit
+      POSTGRES_USER: sivit
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-devpass}
+    volumes:
+      - db_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U sivit -d sivit"]
+      interval: 5s
+      retries: 10
+
+  portal:
+    build: ./portal
+    command: sh -c "python manage.py migrate --noinput && python manage.py runserver 0.0.0.0:8000"
+    environment:
+      DATABASE_URL: postgres://sivit:${POSTGRES_PASSWORD:-devpass}@sivitDB:5432/sivit
+      DJANGO_SECRET_KEY: ${DJANGO_SECRET_KEY:-dev-inseguro}
+      DJANGO_DEBUG: ${DJANGO_DEBUG:-0}
+    ports:
+      - "8000:8000"
+    depends_on:
+      sivitDB:
+        condition: service_healthy
+
+volumes:
+  db_data:

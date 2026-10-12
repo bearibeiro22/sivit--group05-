@@ -1,0 +1,17 @@
+<!doctype html>
+<html lang="pt">
+<head>
+  <meta charset="utf-8">
+  <title>SIVIT</title>
+  <style>
+    body { font-family: system-ui, sans-serif; margin: 2rem; }
+    table { border-collapse: collapse; }
+    th, td { border: 1px solid #ccc; padding: .3rem .6rem; text-align: left; }
+    th { background: #0b3c5d; color: white; }
+  </style>
+</head>
+<body>
+  <h1>{% block cabecalho %}SIVIT{% endblock %}</h1>
+  {% block conteudo %}{% endblock %}
+</body>
+</html>
