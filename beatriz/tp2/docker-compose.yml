@@ -14,16 +14,27 @@ services:
 
   portal:
     build: ./portal
-    command: sh -c "python manage.py migrate --noinput && python manage.py runserver 0.0.0.0:8000"
     environment:
       DATABASE_URL: postgres://sivit:${POSTGRES_PASSWORD:-devpass}@sivitDB:5432/sivit
       DJANGO_SECRET_KEY: ${DJANGO_SECRET_KEY:-dev-inseguro}
       DJANGO_DEBUG: ${DJANGO_DEBUG:-0}
-    ports:
-      - "8000:8000"
+      LATENCIA_MS: ${LATENCIA_MS:-0}
+    volumes:
+      - static:/var/www/static
     depends_on:
       sivitDB:
         condition: service_healthy
 
+  nginx:
+    image: nginx:1.27-alpine
+    ports:
+      - "8080:80"
+    volumes:
+      - ./nginx:/etc/nginx/conf.d:ro
+      - static:/var/www/static:ro
+    depends_on:
+      - portal
+
 volumes:
   db_data:
+  static:
