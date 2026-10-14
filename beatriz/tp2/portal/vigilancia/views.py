@@ -5,12 +5,12 @@ from django.http import JsonResponse
 from django.shortcuts import render
 from django.test.utils import CaptureQueriesContext
 
-from .services import MODOS, linhas_ingenuo
+from .services import MODOS, linhas_subquery
 
 
 def painel(request):
-    modo = request.GET.get("modo", "ingenuo")                      # ?modo=...
-    funcao = MODOS.get(modo, linhas_ingenuo)
+    modo = request.GET.get("modo", "subquery")                     # ?modo=...
+    funcao = MODOS.get(modo, linhas_subquery)
     with CaptureQueriesContext(connection) as q:                    # conta as queries deste pedido
         t0 = time.perf_counter()
         linhas = funcao()                                           # pede os dados a camada de dados

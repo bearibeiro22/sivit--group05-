@@ -197,3 +197,51 @@ os dois timeouts devem ser coerentes entre si.
   quando o ficheiro foi editado com `sed -i`, porque o `sed -i` cria um ficheiro novo. Montar a
   pasta (`./nginx:/etc/nginx/conf.d`) resolveu o problema.
 
+## Exercício 4 · O efeito N+1
+
+O painel mostra, para cada internamento ativo, a última leitura de cada dispositivo. Dados
+sintéticos (`seed_sivit`): 20 internamentos × 3 dispositivos × 50 leituras = 60 linhas por
+pedido. As 4 versões estão em `vigilancia/services.py` (`MODOS`) e podem ser vistas em
+`/painel/?modo=...`. Medi com `python manage.py medir_n1`, que conta as queries
+(`connection.queries`) e o tempo de cada versão. Tabela com a mediana de 30 execuções:
+
+| Versão | Queries | Tempo total (ms) |
+| --- | --- | --- |
+| Naive | 101 | 107.6 |
+| + select_related | 81 | 84.8 |
+| + prefetch_related | 62 | 75.3 |
+| + subquery for last reading | 2 | 8.1 |
+
+Com 10 execuções os valores foram 100.6 / 92.3 / 71.8 / 6.9 ms, com a mesma ordem de grandeza.
+
+**De onde vêm as 101 queries da versão ingénua:** 1 (internamentos ativos) + 20 (o doente de
+cada internamento) + 20 (os dispositivos de cada internamento) + 60 (a última leitura de cada
+dispositivo). O código são quatro linhas que parecem inofensivas: como o QuerySet é
+preguiçoso, cada `i.doente`, `i.dispositivos.all()` e `.first()` dentro do ciclo dispara uma
+query nova.
+
+**Cada correção elimina um grupo:**
+- `select_related("doente")` traz o doente com um **JOIN** na primeira query: 101 → 81 (-20).
+- `prefetch_related("dispositivos")` vai buscar os dispositivos de todos os internamentos
+  numa **única** query extra e junta-os em Python: 81 → 62 (-19).
+- A **subquery correlacionada** (`Subquery` + `OuterRef`) calcula a última leitura de cada
+  dispositivo dentro do próprio SQL: 62 → **2** (-60).
+
+**Análise:** o tempo acompanha o número de queries quase linearmente: cerca de **1.07 ms por
+query** na versão ingénua (107.6 / 101), e 1.05 e 1.21 ms nas seguintes. As 2 queries finais
+são mais pesadas (cerca de 4 ms cada, porque a base de dados faz mais trabalho em cada uma),
+mas o total desce para 8.1 ms: **13 vezes mais rápido**, com exatamente a mesma tabela no ecrã.
+O que custa não é o trabalho da base de dados, é o número de **idas e voltas**.
+
+O custo de ~1 ms por query bate com a TP1, onde medi um p50 de 1.22 ms para um pedido HTTP
+entre dois contentores. A versão ingénua é, na prática, 101 × uma ida e volta pela rede, em
+sequência: é a pergunta 3 do exercício 4 da TP1 (30 chamadas em sequência somam-se) a
+acontecer dentro do ORM.
+
+E aqui a base de dados está a um só salto de contentor. Se cada query fosse uma chamada a um
+microserviço, com 2 a 10 ms cada, as 101 chamadas custariam entre **0.2 e 1 s** por página,
+contra 4 a 20 ms para as 2. Se fosse uma chamada intercontinental, com os 326 ms que medi para
+os EUA na TP1, seriam **33 s**. É a "interface remota demasiado fina" da B4: muitas chamadas
+pequenas em vez de poucas chamadas grandes. O ORM torna o erro invisível no código, o que o
+torna mais perigoso. A única forma de o ver é medir.
+
