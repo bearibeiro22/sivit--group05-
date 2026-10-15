@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+{% block cabecalho %}Painel de vigilancia{% endblock %}
+{% block conteudo %}
+<p>
+  Modo:
+  {% for m in modos %}
+    {% if m == modo %}<strong>{{ m }}</strong>{% else %}<a href="?modo={{ m }}">{{ m }}</a>{% endif %}
+  {% endfor %}
+</p>
+<p>{{ n_queries }} queries &middot; {{ ms|floatformat:1 }} ms &middot; {{ linhas|length }} linhas</p>
+<table>
+  <tr><th>Doente</th><th>Cama</th><th>Dispositivo</th><th>Ultima leitura</th><th>Instante</th></tr>
+  {% for l in linhas %}
+  <tr>
+    <td>{{ l.doente }}</td><td>{{ l.cama }}</td><td>{{ l.tipo }}</td>
+    <td>{{ l.valor|floatformat:1 }} {{ l.unidade }}</td><td>{{ l.instante|date:"H:i:s" }}</td>
+  </tr>
+  {% empty %}
+  <tr><td colspan="5">Sem internamentos ativos.</td></tr>
+  {% endfor %}
+</table>
+{% endblock %}
