@@ -35,6 +35,20 @@ class AdmissionViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, mixins.
         return qs
 
 
+    def create(self, request, *args, **kwargs):
+        def executar():
+            s = self.get_serializer(data=request.data)
+            s.is_valid(raise_exception=True)
+            s.save()
+            return status.HTTP_201_CREATED, s.data
+
+        chave = request.headers.get("Idempotency-Key")
+        if chave:
+            chave = f"{request.user.pk}:{chave}"     # a chave e de cada cliente, nao global
+        estado, corpo = services.com_idempotencia(chave, executar)
+        return Response(corpo, status=estado)
+
+
 class DeviceViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, mixins.CreateModelMixin,
                     mixins.UpdateModelMixin, viewsets.GenericViewSet):
     """/api/v1/devices/  GET, POST, PATCH  (identificado pelo numero de serie)"""

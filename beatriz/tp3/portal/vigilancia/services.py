@@ -1,10 +1,10 @@
 """Regras do dominio, sem HTTP: a API (TP3) e o consumidor da fila (TP5) reutilizam isto."""
 from urllib.parse import urlencode
 
-from django.db import transaction
+from django.db import IntegrityError, transaction
 from django.db.models import OuterRef, Prefetch, Subquery
 
-from .models import Dispositivo, Internamento, Leitura
+from .models import ChaveIdempotencia, Dispositivo, Internamento, Leitura
 
 
 def _linha(internamento, dispositivo, valor, unidade, instante):
@@ -92,3 +92,25 @@ def ingerir_leituras(dados):
 def query_cursor(instante, limite):
     """Parametros do proximo pedido na paginacao por cursor."""
     return urlencode({"after": instante.isoformat(), "limit": limite})
+
+
+def com_idempotencia(chave, executar):
+    """Para operacoes sem chave natural. executar() -> (estado_http, corpo).
+    A mesma chave devolve a resposta guardada, sem repetir o efeito."""
+    if not chave:
+        return executar()
+    try:
+        with transaction.atomic():                 # operacao + resposta guardada: tudo ou nada
+            guardada = ChaveIdempotencia.objects.filter(chave=chave).first()
+            if guardada:
+                return guardada.estado, guardada.resposta
+            estado, corpo = executar()
+            ChaveIdempotencia.objects.create(chave=chave, estado=estado, resposta=corpo)
+            return estado, corpo
+    except IntegrityError:
+        # dois pedidos com a mesma chave ao mesmo tempo: o outro guardou primeiro e o nosso
+        # efeito foi desfeito pelo rollback. Devolvemos a resposta dele.
+        guardada = ChaveIdempotencia.objects.filter(chave=chave).first()
+        if guardada is None:
+            raise
+        return guardada.estado, guardada.resposta

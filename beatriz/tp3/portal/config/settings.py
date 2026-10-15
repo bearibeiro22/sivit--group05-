@@ -22,6 +22,7 @@ INSTALLED_APPS = [
 ]
 
 MIDDLEWARE = [
+    "vigilancia.middleware.PerdaRespostaMiddleware",       # so atua se PERDA_RESPOSTA > 0
     "vigilancia.middleware.LatenciaArtificialMiddleware",   # so atua se LATENCIA_MS > 0
     "django.middleware.security.SecurityMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",

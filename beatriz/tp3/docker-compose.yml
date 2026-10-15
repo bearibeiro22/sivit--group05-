@@ -19,6 +19,7 @@ services:
       DJANGO_SECRET_KEY: ${DJANGO_SECRET_KEY:-dev-inseguro}
       DJANGO_DEBUG: ${DJANGO_DEBUG:-0}
       LATENCIA_MS: ${LATENCIA_MS:-0}
+      PERDA_RESPOSTA: ${PERDA_RESPOSTA:-0}
     volumes:
       - static:/var/www/static
     depends_on:

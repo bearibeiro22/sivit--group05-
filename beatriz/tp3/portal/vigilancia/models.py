@@ -53,3 +53,14 @@ class Leitura(models.Model):
 
     def __str__(self):
         return f"{self.parametro}={self.valor}{self.unidade} @ {self.instante:%H:%M:%S}"
+
+
+class ChaveIdempotencia(models.Model):
+    """Resposta guardada de uma operacao sem chave natural (ex.: criar um internamento)."""
+    chave = models.CharField(max_length=100, primary_key=True)   # "<utilizador>:<Idempotency-Key>"
+    estado = models.PositiveSmallIntegerField()                   # codigo HTTP da 1.a resposta
+    resposta = models.JSONField()                                 # corpo da 1.a resposta
+    criada = models.DateTimeField(auto_now_add=True, db_index=True)
+
+    def __str__(self):
+        return self.chave
