@@ -173,3 +173,63 @@ Por isso o modelo tem `criada` com índice: uma tarefa periódica pode fazer
 `DELETE ... WHERE criada < now() - interval '24 hours'`. A UNIQUE das leituras não tem este
 problema: não expira, porque faz parte dos próprios dados.
 
+## Exercício 3 · O custo de não paginar
+
+O endpoint `/api/v1/devices/{serial}/readings/` serve as leituras de um dispositivo, das mais
+recentes para as mais antigas, de 3 formas:
+- `?pagination=none`: tudo de uma vez;
+- `?page=N`: offset, `LIMIT 100 OFFSET 100·(N-1)`;
+- `?after=<instante>&limit=100`: cursor, `WHERE instante < <cursor> ORDER BY instante DESC LIMIT 100`.
+  Cada página de cursor traz o link `next` com o cursor da página seguinte.
+
+Carreguei **50 000 leituras** no `SN-001-0` (`carregar_leituras`, no total 50 050) e medi pela
+rede, através do Nginx, como um cliente real (`medir_paginacao`, mediana de 5 pedidos,
+páginas de 100):
+
+| Strategy | First page | Page 500 | Response size |
+| --- | --- | --- | --- |
+| No pagination | 2348 ms (tudo) | – | **4.92 MB** |
+| Offset (`?page=`) | 40.5 ms | 51.3 ms | 10.2 KB |
+| Cursor (`?after=<instant>&limit=100`) | 32.0 ms | 39.6 ms | 10.2 KB |
+
+**`EXPLAIN ANALYZE` da página 500** (`explicar_indice`). "Sem índices" significa
+`enable_indexscan`, `enable_bitmapscan` e `enable_indexonlyscan` desligados só nessa transação,
+o que obriga o PostgreSQL a ler a tabela toda sem apagar nenhum índice:
+
+| Query (página 500) | Com índices | Sem índices |
+| --- | --- | --- |
+| **Offset** (`OFFSET 49900 LIMIT 100`) | Index Scan Backward, **lê 50 000 linhas**: **18.8 ms** | Seq Scan de 50 050 + Sort completo (*external merge*, 2.6 MB em disco): **31.8 ms** |
+| **Cursor** (`instante < X LIMIT 100`) | Index Scan Backward, **lê 100 linhas**: **0.21 ms** | Seq Scan + Sort de 150 linhas: **4.8 ms** |
+
+**Análise:**
+- **Sem paginação:** uma única resposta de **4.92 MB** e **2.3 s**, só para um dispositivo.
+  Com 60 dispositivos e vários clientes, um endpoint destes satura a rede e prende os 3
+  workers do Gunicorn durante segundos. Funciona na demo, com 50 leituras, e cai em produção,
+  com meses de dados. É a falácia n.º 3, "a largura de banda é infinita": paginar reduz a
+  resposta **~490 vezes** (de 4.92 MB para 10 KB).
+- **Offset:** o `OFFSET n` obriga a base de dados a **percorrer e deitar fora n linhas** antes
+  de devolver as 100 pedidas. O plano mostra `rows=50000` para devolver 100. O custo cresce
+  linearmente com o número da página: a página 5 000 de um dispositivo com 500 000 leituras
+  seria 10 vezes pior. Além disso, o `PageNumberPagination` faz um `COUNT(*)` em cada página.
+- **Cursor:** com o índice, vai **diretamente** ao instante do cursor e lê só as 100 linhas
+  seguintes. A página 500 custa o mesmo que a página 1: na base de dados, 0.21 ms contra
+  18.8 ms do offset, ou seja **~90 vezes menos**.
+- **Pela rede, a diferença é menor** (51 vs 40 ms) porque os custos fixos (Nginx, Gunicorn,
+  serializar 100 leituras em JSON, o `COUNT(*)` do offset) escondem parte do trabalho da BD.
+  Com mais dados, o termo que cresce é o do offset.
+- **Índices:** sem índice, mesmo o cursor tem de ler a tabela toda e ordenar (4.8 ms em vez de
+  0.21 ms, ~23 vezes mais). O offset sem índice ordena 50 000 linhas em disco. O PostgreSQL
+  escolheu o índice simples em `instante` em vez do composto `(dispositivo, instante DESC)`:
+  quase todas as linhas da tabela são deste dispositivo, por isso filtrar pelo dispositivo
+  quase não reduz nada. Para um dispositivo com poucas leituras seria o composto a ser usado.
+  O planeador decide com base nas estatísticas (`ANALYZE`), e é por isso que se usa o
+  `EXPLAIN`.
+
+**O cursor também é mais correto, não só mais rápido.** Chegam leituras novas a cada segundo
+e entram no topo da lista. Com offset, as páginas "deslizam" entre pedidos, e o cliente vê
+leituras repetidas ou salta outras. Com o cursor ("as 100 anteriores a este instante"), a
+página seguinte não muda. O custo é que não se pode saltar diretamente para a página 500, e
+a chave do cursor tem de ser **única e estável**. Aqui o instante é único por dispositivo,
+porque cada dispositivo tem um só parâmetro. Num caso geral usar-se-ia `(instante, id)` como
+cursor, com um índice a condizer.
+
