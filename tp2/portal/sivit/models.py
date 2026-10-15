@@ -28,3 +28,9 @@ class Reading(models.Model):
     class Meta:
         constraints = [models.UniqueConstraint(fields=["device", "instant", "parameter"], name="uniq_reading")]
         indexes = [models.Index(fields=["device", "-instant"])]
+
+class IdempotencyKey(models.Model):
+    key = models.CharField(max_length=128, primary_key=True)
+    status_code = models.PositiveSmallIntegerField(default=201)
+    response = models.JSONField()
+    created = models.DateTimeField(auto_now_add=True)

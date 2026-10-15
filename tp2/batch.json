@@ -1,0 +1,72 @@
+[
+  {
+    "device": "DEV-001",
+    "instant": "2026-10-15T10:00:00Z",
+    "parameter": "HR",
+    "value": 70,
+    "unit": "bpm"
+  },
+  {
+    "device": "DEV-001",
+    "instant": "2026-10-15T10:00:01Z",
+    "parameter": "HR",
+    "value": 71,
+    "unit": "bpm"
+  },
+  {
+    "device": "DEV-001",
+    "instant": "2026-10-15T10:00:02Z",
+    "parameter": "HR",
+    "value": 72,
+    "unit": "bpm"
+  },
+  {
+    "device": "DEV-001",
+    "instant": "2026-10-15T10:00:03Z",
+    "parameter": "HR",
+    "value": 73,
+    "unit": "bpm"
+  },
+  {
+    "device": "DEV-001",
+    "instant": "2026-10-15T10:00:04Z",
+    "parameter": "HR",
+    "value": 74,
+    "unit": "bpm"
+  },
+  {
+    "device": "DEV-001",
+    "instant": "2026-10-15T10:00:05Z",
+    "parameter": "HR",
+    "value": 75,
+    "unit": "bpm"
+  },
+  {
+    "device": "DEV-001",
+    "instant": "2026-10-15T10:00:06Z",
+    "parameter": "HR",
+    "value": 76,
+    "unit": "bpm"
+  },
+  {
+    "device": "DEV-001",
+    "instant": "2026-10-15T10:00:07Z",
+    "parameter": "HR",
+    "value": 77,
+    "unit": "bpm"
+  },
+  {
+    "device": "DEV-001",
+    "instant": "2026-10-15T10:00:08Z",
+    "parameter": "HR",
+    "value": 78,
+    "unit": "bpm"
+  },
+  {
+    "device": "DEV-001",
+    "instant": "2026-10-15T10:00:09Z",
+    "parameter": "HR",
+    "value": 79,
+    "unit": "bpm"
+  }
+]

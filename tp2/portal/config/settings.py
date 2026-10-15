@@ -47,6 +47,7 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    'sivit.middleware.DropResponseMiddleware',
 ]
 
 ROOT_URLCONF = 'config.urls'
@@ -131,3 +132,24 @@ _u = urlparse(os.environ.get("DATABASE_URL", "postgres://sivit:devpass@sivitDB:5
 DATABASES = {"default": {"ENGINE": "django.db.backends.postgresql", "NAME": _u.path[1:], "USER": _u.username, "PASSWORD": _u.password, "HOST": _u.hostname, "PORT": _u.port or 5432}}
 STATIC_ROOT = "/var/www/static"
 TIME_ZONE = "Europe/Lisbon"
+
+INSTALLED_APPS += ["rest_framework", "rest_framework.authtoken", "django_filters", "drf_spectacular"]
+REST_FRAMEWORK = {
+    "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
+    "DEFAULT_FILTER_BACKENDS": ["django_filters.rest_framework.DjangoFilterBackend"],
+}
+SPECTACULAR_SETTINGS = {"TITLE": "SIVIT API", "VERSION": "1.0.0"}
+
+# --- TP3 Ex.4: machine auth + throttling ---
+REST_FRAMEWORK.update({
+    "DEFAULT_AUTHENTICATION_CLASSES": [
+        "rest_framework.authentication.TokenAuthentication",
+        "rest_framework.authentication.SessionAuthentication",
+    ],
+    "DEFAULT_PERMISSION_CLASSES": ["rest_framework.permissions.IsAuthenticated"],
+    "DEFAULT_THROTTLE_CLASSES": ["rest_framework.throttling.UserRateThrottle"],
+    "DEFAULT_THROTTLE_RATES": {"user": "5/min"},
+})
+
+
+
