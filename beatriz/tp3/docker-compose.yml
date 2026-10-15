@@ -20,6 +20,7 @@ services:
       DJANGO_DEBUG: ${DJANGO_DEBUG:-0}
       LATENCIA_MS: ${LATENCIA_MS:-0}
       PERDA_RESPOSTA: ${PERDA_RESPOSTA:-0}
+      THROTTLE_GATEWAY: ${THROTTLE_GATEWAY:-6000/minute}
     volumes:
       - static:/var/www/static
     depends_on:

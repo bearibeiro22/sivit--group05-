@@ -233,3 +233,67 @@ a chave do cursor tem de ser **única e estável**. Aqui o instante é único po
 porque cada dispositivo tem um só parâmetro. Num caso geral usar-se-ia `(instante, id)` como
 cursor, com um índice a condizer.
 
+## Exercício 4 · Autenticação de máquinas e o contrato
+
+**Token por gateway, separado das sessões humanas.** Cada gateway é um utilizador próprio,
+sem password utilizável (`criar_gateway gateway-e1`), com um token
+(`rest_framework.authtoken`). As máquinas autenticam-se com `Authorization: Token ...` e os
+humanos com a sessão do Django (admin, API navegável). Têm ciclos de vida diferentes: um token
+de gateway revoga-se sozinho, apagando o token, sem afetar ninguém, e um gateway nunca faz
+login nem guarda cookies.
+
+**Throttling por token (bulkhead, B8):** `UserRateThrottle`, com o limite vindo do ambiente
+(`THROTTLE_GATEWAY`, por defeito 6000/minuto, ou seja 100 pedidos/s por gateway). Pedidos
+anónimos: 60/minuto. Experiência com o limite descido para **20/minuto**:
+
+| Cliente | Pedidos | Resultado |
+| --- | --- | --- |
+| `gateway-e1` (avariado) | 30 seguidos | **20 × 200**, depois **10 × 429** `Too Many Requests`, com `Retry-After: 59` |
+| `gateway-e2` (ao mesmo tempo) | 5 | **5 × 200**: não é afetado |
+
+O gateway avariado fica isolado no seu compartimento, e os outros continuam a ser servidos. A
+resposta `429` com `Retry-After` diz-lhe quando pode voltar, em vez de o deixar a martelar o
+serviço. É uma degradação controlada, e é **a ele** que se limita, não ao serviço (um `503`
+seria "o serviço está em baixo para todos").
+
+**Os contadores têm de ser partilhados.** O throttling guarda os contadores na cache do
+Django, que por defeito vive **na memória de cada processo**. Com 3 workers no Gunicorn, cada
+worker contaria sozinho, e o gateway conseguiria até 3 × 20 = 60 pedidos/minuto, dependendo do
+worker que o atendesse. Mudei a cache para a base de dados (`DatabaseCache`, tabela
+`cache_api`, criada no `arranque.sh` com `createcachetable`). O resultado foram exatamente 20
+pedidos aceites com 3 workers. É a regra da B3: estado que tem de ser coerente entre réplicas
+não pode viver na memória do processo. Com várias réplicas do portal, o natural seria o Redis.
+
+**OpenAPI:** gerado pelo `drf-spectacular` a partir do código, publicado em `/api/schema/`
+(HTTP 200, 18 KB, **16 operações** em `/api/v1/patients/`, `/admissions/`, `/devices/`,
+`/devices/{serial}/readings/`, `/devices/{serial}/readings/latest/` e `/readings/`, e os
+esquemas de autenticação `cookieAuth` e `tokenAuth`). Pode ser explorado no Swagger UI em
+`/api/schema/swagger-ui/`.
+
+### Discussão: o OpenAPI é o "IDL" da B4 para REST. Comparado com um `.proto`, qual é mais estrito? O que se ganha e perde com cada um?
+
+**O `.proto` é mais estrito.** Num `.proto` (Protocol Buffers / gRPC) o contrato é **a fonte
+da verdade**: o código do cliente e do servidor é **gerado** a partir dele, e a mensagem nem
+sequer se consegue construir ou ler sem ele. É binária e os campos são identificados por
+número. Os erros de tipo apanham-se ao compilar, e as regras de evolução são explícitas: os
+números de campo nunca se reutilizam, um campo novo é ignorado por quem não o conhece.
+
+O meu OpenAPI é **gerado a partir do código** (*code-first*). **Descreve** a API, mas não a
+**impõe**: um cliente pode ignorá-lo e enviar o JSON que quiser, e a validação só acontece em
+tempo de execução, no serializer (400). Também pode desviar-se da realidade. Por exemplo, o
+endpoint `/devices/{serial}/readings/` devolve formas diferentes conforme o parâmetro
+(`?page=`, `?after=`, `?pagination=none`), e o esquema gerado automaticamente não o consegue
+exprimir com precisão sem anotações manuais (`@extend_schema`).
+
+| | OpenAPI + REST/JSON | `.proto` + gRPC |
+| --- | --- | --- |
+| **Ganha-se** | legível por humanos; testável com `curl` e com o browser (foi assim que fiz todas as experiências); funciona com qualquer linguagem e através de qualquer proxy (o Nginx); usa a semântica do HTTP (códigos 201/400/401/429, verbos idempotentes, cache); acoplamento fraco: acrescentar campos ao JSON não parte clientes antigos | mensagens binárias compactas e rápidas de processar (os 4.92 MB de JSON do exercício 3 seriam bastante menores); tipos fortes verificados ao compilar; clientes gerados automaticamente; streaming bidirecional sobre HTTP/2 (natural para um fluxo contínuo de leituras) |
+| **Perde-se** | JSON é verboso e mais lento de processar; os tipos só se verificam em tempo de execução; o contrato pode desviar-se do código | não é legível sem ferramentas; no browser precisa de gRPC-Web; mais acoplamento (os clientes têm de regenerar o código quando o `.proto` muda); mais difícil de inspecionar e de passar por alguns proxies |
+
+**Para o SIVIT:** REST + OpenAPI é a escolha certa para o portal e para integrações externas,
+onde a interoperabilidade e a facilidade de diagnóstico contam mais do que os bytes. Os
+gateways das enfermarias são heterogéneos e difíceis de atualizar (a razão do `/v1/`), e o
+JSON tolera melhor versões misturadas. Um `.proto`/gRPC faria sentido num canal **interno**
+de ingestão de alto débito, entre serviços que controlamos e atualizamos juntos, que é o tipo
+de microserviço que aparece na TP4.
+

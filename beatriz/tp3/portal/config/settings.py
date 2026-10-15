@@ -18,6 +18,7 @@ INSTALLED_APPS = [
     "django.contrib.staticfiles",
     "rest_framework",
     "rest_framework.authtoken",
+    "drf_spectacular",
     "vigilancia",
 ]
 
@@ -85,4 +86,33 @@ REST_FRAMEWORK = {
     "DEFAULT_PERMISSION_CLASSES": ["rest_framework.permissions.IsAuthenticated"],
     "DEFAULT_PAGINATION_CLASS": "rest_framework.pagination.PageNumberPagination",
     "PAGE_SIZE": 100,
+}
+
+# ---------------------------------------------------------------- exercicio 4: throttling + OpenAPI
+REST_FRAMEWORK.update({
+    # limite de pedidos POR TOKEN: um gateway avariado nao derruba o servico (bulkhead, B8)
+    "DEFAULT_THROTTLE_CLASSES": [
+        "rest_framework.throttling.UserRateThrottle",
+        "rest_framework.throttling.AnonRateThrottle",
+    ],
+    "DEFAULT_THROTTLE_RATES": {
+        "user": os.environ.get("THROTTLE_GATEWAY", "6000/minute"),
+        "anon": "60/minute",
+    },
+    "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",   # gera o contrato OpenAPI
+})
+
+SPECTACULAR_SETTINGS = {
+    "TITLE": "SIVIT API",
+    "DESCRIPTION": "API v1 do portal SIVIT (dados sinteticos).",
+    "VERSION": "1.0.0",
+}
+
+# os contadores do throttling tem de ser PARTILHADOS pelos 3 workers do Gunicorn:
+# em memoria do processo, cada worker contava sozinho (o limite real seria 3x maior)
+CACHES = {
+    "default": {
+        "BACKEND": "django.core.cache.backends.db.DatabaseCache",
+        "LOCATION": "cache_api",
+    }
 }
