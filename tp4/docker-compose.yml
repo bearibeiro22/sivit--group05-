@@ -1,0 +1,41 @@
+services:
+  db:
+    image: postgres:16
+    environment:
+      POSTGRES_USER: app
+      POSTGRES_PASSWORD: app
+      POSTGRES_DB: vigilancia
+    volumes:
+      - ./db/init.sql:/docker-entrypoint-initdb.d/init.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U app -d vigilancia"]
+      interval: 3s
+      timeout: 3s
+      retries: 10
+
+  portal:
+    build: ./portal
+    ports:
+      - "8002:8000"
+
+  ingestion:
+    build: ./ingestion
+    environment:
+      DATABASE_URL: postgresql://app:app@db:5432/vigilancia
+      PORTAL_URL: http://portal:8000
+    ports:
+      - "8001:8000"
+    depends_on:
+      db:
+        condition: service_healthy
+      portal:
+        condition: service_started
+
+  gateway:
+    build: ./gateway
+    profiles: ["tools"]
+    volumes:
+      - gateway_data:/data
+
+volumes:
+  gateway_data:
