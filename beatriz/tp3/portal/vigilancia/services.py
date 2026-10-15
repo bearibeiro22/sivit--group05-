@@ -1,4 +1,7 @@
 """Regras do dominio, sem HTTP: a API (TP3) e o consumidor da fila (TP5) reutilizam isto."""
+from urllib.parse import urlencode
+
+from django.db import transaction
 from django.db.models import OuterRef, Prefetch, Subquery
 
 from .models import Dispositivo, Internamento, Leitura
@@ -72,3 +75,20 @@ MODOS = {
     "prefetch": linhas_prefetch,
     "subquery": linhas_subquery,
 }
+
+
+# ---------------------------------------------------------------- API (TP3)
+def ingerir_leituras(dados):
+    """Guarda um lote de leituras. Duplicados (mesmo dispositivo, instante e parametro) sao
+    ignorados pela base de dados: reenviar o mesmo lote nao muda nada (idempotente)."""
+    leituras = [Leitura(**d) for d in dados]
+    with transaction.atomic():
+        antes = Leitura.objects.count()
+        Leitura.objects.bulk_create(leituras, ignore_conflicts=True)   # INSERT ... ON CONFLICT DO NOTHING
+        inseridas = Leitura.objects.count() - antes
+    return {"received": len(leituras), "inserted": inseridas, "ignored": len(leituras) - inseridas}
+
+
+def query_cursor(instante, limite):
+    """Parametros do proximo pedido na paginacao por cursor."""
+    return urlencode({"after": instante.isoformat(), "limit": limite})

@@ -1,3 +1,5 @@
 Django>=5.2,<5.3
 gunicorn>=23
 psycopg[binary]>=3.2
+djangorestframework>=3.15
+drf-spectacular>=0.28
