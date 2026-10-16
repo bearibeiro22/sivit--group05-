@@ -15,4 +15,4 @@ def measure(url, n=200):
     }
 
 
-print("HTTP to USA:", measure("https://www.google.com"))
+print("HTTP to USA:", measure("https://dynamodb.us-east-1.amazonaws.com/"))
