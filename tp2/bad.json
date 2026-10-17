@@ -1,9 +1,0 @@
-[
-  {
-    "device": "DEV-001",
-    "instant": "2026-10-15T11:00:00Z",
-    "parameter": "HR",
-    "value": 300,
-    "unit": "bpm"
-  }
-]
