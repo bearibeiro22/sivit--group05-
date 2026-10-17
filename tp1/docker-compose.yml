@@ -1,0 +1,10 @@
+services:
+  echo:
+    build: ./echo-service
+    environment:
+      SERVICE_NAME: echo
+  client:
+    build: ./client
+    environment:
+      TARGET_URL: http://echo:8000/
+    depends_on: [echo]
