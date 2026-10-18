@@ -1,0 +1,488 @@
+openapi: 3.0.3
+info:
+  title: SIVIT API
+  version: 1.0.0
+  description: API de ingestao e consulta de leituras de dispositivos.
+paths:
+  /api/v1/admissions/:
+    get:
+      operationId: admissions_list
+      tags:
+      - admissions
+      security:
+      - tokenAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Internamento'
+          description: ''
+    post:
+      operationId: admissions_create
+      parameters:
+      - in: header
+        name: Idempotency-Key
+        schema:
+          type: string
+        description: 'Opcional. Repetir o pedido com a mesma chave devolve a resposta
+          guardada (cabecalho `Idempotent-Replay: true`) em vez de criar outro internamento.'
+      tags:
+      - admissions
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Internamento'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/Internamento'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/Internamento'
+        required: true
+      security:
+      - tokenAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Internamento'
+          description: ''
+  /api/v1/admissions/{id}/:
+    patch:
+      operationId: admissions_partial_update
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this internamento.
+        required: true
+      tags:
+      - admissions
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedInternamento'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedInternamento'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedInternamento'
+      security:
+      - tokenAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Internamento'
+          description: ''
+  /api/v1/devices/:
+    get:
+      operationId: devices_list
+      tags:
+      - devices
+      security:
+      - tokenAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Dispositivo'
+          description: ''
+    post:
+      operationId: devices_create
+      tags:
+      - devices
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Dispositivo'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/Dispositivo'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/Dispositivo'
+        required: true
+      security:
+      - tokenAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Dispositivo'
+          description: ''
+  /api/v1/devices/{numero_serie}/:
+    patch:
+      operationId: devices_partial_update
+      parameters:
+      - in: path
+        name: numero_serie
+        schema:
+          type: string
+          pattern: ^[^/]+$
+        required: true
+      tags:
+      - devices
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedDispositivo'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedDispositivo'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedDispositivo'
+      security:
+      - tokenAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Dispositivo'
+          description: ''
+  /api/v1/devices/{numero_serie}/readings/:
+    get:
+      operationId: devices_readings_retrieve
+      parameters:
+      - in: query
+        name: after
+        schema:
+          type: string
+        description: 'Cursor: instante ISO 8601 em UTC, opcionalmente seguido de '',id''.
+          Use o valor de `next` da resposta anterior.'
+      - in: query
+        name: limit
+        schema:
+          type: integer
+        description: Linhas por pagina (1 a 1000; por omissao 100).
+      - in: path
+        name: numero_serie
+        schema:
+          type: string
+          pattern: ^[^/]+$
+        required: true
+      - in: query
+        name: page
+        schema:
+          type: integer
+        description: Paginacao por offset, so para comparar. Se presente, ignora after
+          e limit.
+      tags:
+      - devices
+      security:
+      - tokenAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginaDeLeituras'
+          description: ''
+  /api/v1/devices/{numero_serie}/readings/latest/:
+    get:
+      operationId: devices_readings_latest_retrieve
+      parameters:
+      - in: path
+        name: numero_serie
+        schema:
+          type: string
+          pattern: ^[^/]+$
+        required: true
+      tags:
+      - devices
+      security:
+      - tokenAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Leitura'
+          description: ''
+  /api/v1/patients/:
+    get:
+      operationId: patients_list
+      tags:
+      - patients
+      security:
+      - tokenAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Doente'
+          description: ''
+    post:
+      operationId: patients_create
+      tags:
+      - patients
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Doente'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/Doente'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/Doente'
+        required: true
+      security:
+      - tokenAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Doente'
+          description: ''
+  /api/v1/readings/:
+    get:
+      operationId: readings_list
+      parameters:
+      - in: query
+        name: after
+        schema:
+          type: string
+        description: 'Cursor: instante ISO 8601 em UTC, opcionalmente seguido de '',id''.
+          Use o valor de `next` da resposta anterior.'
+      - in: query
+        name: limit
+        schema:
+          type: integer
+        description: Linhas por pagina (1 a 1000; por omissao 100).
+      - in: query
+        name: page
+        schema:
+          type: integer
+        description: Paginacao por offset, so para comparar. Se presente, ignora after
+          e limit.
+      tags:
+      - readings
+      security:
+      - tokenAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedPaginaDeLeiturasList'
+          description: ''
+    post:
+      operationId: readings_create
+      description: 'Aceita uma leitura ou um lote (lista). Reenviar leituras ja recebidas
+        e inofensivo: `criadas` conta so as novas.'
+      tags:
+      - readings
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: array
+              items:
+                $ref: '#/components/schemas/Leitura'
+          application/x-www-form-urlencoded:
+            schema:
+              type: array
+              items:
+                $ref: '#/components/schemas/Leitura'
+          multipart/form-data:
+            schema:
+              type: array
+              items:
+                $ref: '#/components/schemas/Leitura'
+        required: true
+      security:
+      - tokenAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ResultadoDoLote'
+          description: ''
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ResultadoDoLote'
+          description: ''
+components:
+  schemas:
+    Dispositivo:
+      type: object
+      properties:
+        numero_serie:
+          type: string
+          maxLength: 64
+        tipo:
+          type: string
+          maxLength: 16
+        internamento:
+          type: integer
+          nullable: true
+      required:
+      - numero_serie
+      - tipo
+    Doente:
+      type: object
+      properties:
+        codigo:
+          type: string
+          maxLength: 32
+        nome:
+          type: string
+          maxLength: 120
+        data_nascimento:
+          type: string
+          format: date
+      required:
+      - codigo
+      - data_nascimento
+      - nome
+    Internamento:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        doente:
+          type: string
+        enfermaria:
+          type: string
+          maxLength: 32
+        cama:
+          type: string
+          maxLength: 16
+        admissao:
+          type: string
+          format: date-time
+          readOnly: true
+        alta:
+          type: string
+          format: date-time
+          nullable: true
+        versao:
+          type: integer
+          readOnly: true
+      required:
+      - admissao
+      - cama
+      - doente
+      - enfermaria
+      - id
+      - versao
+    Leitura:
+      type: object
+      properties:
+        dispositivo:
+          type: string
+        instante:
+          type: string
+          format: date-time
+        parametro:
+          type: string
+          maxLength: 16
+        valor:
+          type: number
+          format: double
+        unidade:
+          type: string
+          maxLength: 8
+      required:
+      - dispositivo
+      - instante
+      - parametro
+      - unidade
+      - valor
+    PaginaDeLeituras:
+      type: object
+      properties:
+        next:
+          type: string
+          nullable: true
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/Leitura'
+      required:
+      - next
+      - results
+    PaginatedPaginaDeLeiturasList:
+      type: array
+      items:
+        $ref: '#/components/schemas/PaginaDeLeituras'
+    PatchedDispositivo:
+      type: object
+      properties:
+        numero_serie:
+          type: string
+          maxLength: 64
+        tipo:
+          type: string
+          maxLength: 16
+        internamento:
+          type: integer
+          nullable: true
+    PatchedInternamento:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        doente:
+          type: string
+        enfermaria:
+          type: string
+          maxLength: 32
+        cama:
+          type: string
+          maxLength: 16
+        admissao:
+          type: string
+          format: date-time
+          readOnly: true
+        alta:
+          type: string
+          format: date-time
+          nullable: true
+        versao:
+          type: integer
+          readOnly: true
+    ResultadoDoLote:
+      type: object
+      properties:
+        recebidas:
+          type: integer
+        criadas:
+          type: integer
+      required:
+      - criadas
+      - recebidas
+  securitySchemes:
+    tokenAuth:
+      type: apiKey
+      in: header
+      name: Authorization
+      description: Token-based authentication with required prefix "Token"
