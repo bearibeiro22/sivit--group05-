@@ -1,0 +1,51 @@
+services:
+  sivitDB:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: sivit
+      POSTGRES_USER: sivit
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-devpass}
+    volumes:
+      - db_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U sivit -d sivit"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  portal:
+    build: ./portal
+    environment:
+      DATABASE_URL: postgres://sivit:${POSTGRES_PASSWORD:-devpass}@sivitDB:5432/sivit
+      DJANGO_SECRET_KEY: ${DJANGO_SECRET_KEY:-dev-inseguro}
+      DJANGO_DEBUG: ${DJANGO_DEBUG:-0}
+      GUNICORN_WORKERS: ${GUNICORN_WORKERS:-3}
+      LATENCIA_MS: ${LATENCIA_MS:-0}
+      DROP_RATE: ${DROP_RATE:-0}
+      THROTTLE_RATE: ${THROTTLE_RATE:-120/min}
+    volumes:
+      - static_files:/var/www/static
+    depends_on:
+      sivitDB:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/saude/', timeout=3)"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+
+  nginx:
+    image: nginx:alpine
+    ports:
+      - "8080:80"
+    volumes:
+      - ./nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
+      - static_files:/var/www/static:ro
+    depends_on:
+      portal:
+        condition: service_healthy
+
+volumes:
+  db_data:
+  static_files:
