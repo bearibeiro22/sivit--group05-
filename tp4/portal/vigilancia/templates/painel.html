@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+{% block titulo %}Painel de internamentos{% endblock %}
+{% block cabecalho %}Internamentos ativos{% endblock %}
+{% block conteudo %}
+  <p class="nota">
+    Versão da consulta: <strong>{{ modo }}</strong>.
+    Alternar com <code>?modo=ingenuo|select|prefetch|subquery</code>.
+  </p>
+  <table>
+    <tr><th>Doente</th><th>Dispositivo</th><th>Última leitura</th></tr>
+    {% for nome, tipo, ultima in linhas %}
+      <tr><td>{{ nome }}</td><td>{{ tipo }}</td><td>{{ ultima }}</td></tr>
+    {% empty %}
+      <tr><td colspan="3">Sem internamentos ativos. Correr <code>manage.py seed_sivit</code>.</td></tr>
+    {% endfor %}
+  </table>
+  <p class="nota">{{ linhas|length }} linha(s).</p>
+{% endblock %}
