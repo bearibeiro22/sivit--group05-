@@ -1,11 +1,4 @@
-"""Gerador de carga com medição, para os exercícios 2 e 3.
 
-  python carga.py <url> --concorrencia 50 --duracao 15
-  python carga.py <url> --metodo POST --lote 10 --dispositivos 20 ...
-
-Substitui o `hey` ou o `wrk`: evita instalações e mede exatamente o que
-interessa para as tabelas do guião, incluindo leituras perdidas.
-"""
 import argparse
 import asyncio
 import json
