@@ -1,0 +1,7 @@
+"Configuracao","Debito_req_s","Leituras_perdidas","p99_ms","Falhas_http","Retries","Nao_validadas","Disjuntor_rejeitadas","Cache_hits"
+"Sincrona, portal saudavel","8,2","0","7560,97","0","0","0","0","0"
+"Sincrona, portal a 3 s","5,0","1000","10091,89","100","0","0","0","0"
+"+ timeout 500 ms","29,1","0","2407,34","0","0","4160","0","0"
+"+ retry com backoff e jitter","9,6","0","7506,66","0","3452","1726","0","0"
+"+ disjuntor","185,2","0","1863,0","0","442","26306","26306","0"
+"+ cache local 60 s","230,7","0","1135,58","0","2","32452","32452","0"
