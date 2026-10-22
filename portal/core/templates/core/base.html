@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="pt">
+<head>
+  <meta charset="utf-8">
+  <title>SIVIT</title>
+  {% block head %}{% endblock %}
+  <style>
+    body { font-family: sans-serif; margin: 0; background: #f5f6f8; }
+    header { background: #1f3a5f; color: #fff; padding: 10px 20px; display: flex; justify-content: space-between; align-items: center; }
+    header form { display: inline; }
+    main { padding: 20px; }
+    table { border-collapse: collapse; width: 100%; background: #fff; }
+    th, td { border: 1px solid #ddd; padding: 8px; text-align: left; vertical-align: top; }
+    th { background: #e8ecf1; }
+    tr.alarme td { background: #ffe3e3; }
+    .msg { padding: 10px; margin-bottom: 10px; border-radius: 4px; }
+    .success { background: #d9f2dd; } .warning { background: #fff3cd; } .error { background: #f8d7da; }
+    .vago { color: #888; }
+  </style>
+</head>
+<body>
+  <header>
+    <strong>SIVIT</strong>
+    <span>
+      {% if user.is_authenticated %}
+        {{ user.username }}
+        <form method="post" action="{% url 'logout' %}">{% csrf_token %}<button type="submit">Sair</button></form>
+      {% endif %}
+    </span>
+  </header>
+  <main>
+    {% for m in messages %}<div class="msg {{ m.tags }}">{{ m }}</div>{% endfor %}
+    {% block conteudo %}{% endblock %}
+  </main>
+</body>
+</html>

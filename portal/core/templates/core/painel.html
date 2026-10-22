@@ -1,0 +1,30 @@
+{% extends "core/base.html" %}
+{% block head %}<meta http-equiv="refresh" content="3">{% endblock %}
+{% block conteudo %}
+<h1>Painel de enfermaria</h1>
+<p>Alarmes ativos: <strong>{{ total_alarmes }}</strong> (atualiza a cada 3 s)</p>
+{% if not linhas %}<p>Sem camas para mostrar.</p>{% endif %}
+<table>
+  <tr><th>Enfermaria</th><th>Cama</th><th>Dispositivo</th><th>Doente</th><th>Alarmes ativos</th></tr>
+  {% for l in linhas %}
+  <tr class="{% if l.alarmes %}alarme{% endif %}">
+    <td>{{ l.cama.enfermaria }}</td>
+    <td>{{ l.cama.numero }}</td>
+    <td>{{ l.cama.dispositivo.codigo|default:"-" }}</td>
+    <td>{% if l.internamento %}{{ l.internamento.doente.nome }}{% else %}<span class="vago">vago</span>{% endif %}</td>
+    <td>
+      {% for a in l.alarmes %}
+        <div>
+          {{ a.parametro }} = {{ a.valor }} ({{ a.regra }}) às {{ a.criado_em|date:"H:i:s" }}
+          {% if perms.core.change_alarme %}
+          <form method="post" action="{% url 'reconhecer' a.pk %}" style="display:inline">
+            {% csrf_token %}<button type="submit">Reconhecer</button>
+          </form>
+          {% endif %}
+        </div>
+      {% endfor %}
+    </td>
+  </tr>
+  {% endfor %}
+</table>
+{% endblock %}
