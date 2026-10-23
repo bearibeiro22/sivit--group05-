@@ -1,6 +1,7 @@
 import uuid
 
 from django.core.exceptions import PermissionDenied
+from drf_spectacular.utils import OpenApiResponse, extend_schema
 from rest_framework import status
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -9,6 +10,15 @@ from .services import AlarmeJaReconhecido, AlarmeNaoEncontrado, reconhecer_alarm
 
 
 class ReconhecerAlarmeView(APIView):
+    @extend_schema(
+        request=None,
+        responses={
+            200: OpenApiResponse(description="Alarme reconhecido (devolve id, estado, quem e quando)."),
+            403: OpenApiResponse(description="Sem permissao ou alarme de outra enfermaria."),
+            404: OpenApiResponse(description="Alarme inexistente."),
+            409: OpenApiResponse(description="Ja reconhecido por outro profissional (indica quem e quando)."),
+        },
+    )
     def post(self, request, pk):
         cid = request.headers.get("X-Correlation-ID") or str(uuid.uuid4())
         cabecalhos = {"X-Correlation-ID": cid}

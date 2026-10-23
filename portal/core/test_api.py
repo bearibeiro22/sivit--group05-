@@ -1,4 +1,4 @@
-import io
+﻿import io
 
 from django.contrib.auth import get_user_model
 from django.contrib.auth.models import Group
@@ -59,3 +59,4 @@ class ApiReconhecerTests(TransactionTestCase):
 
     def test_sem_login_e_recusado(self):
         self.assertIn(APIClient().post(self.url).status_code, (401, 403))
+
