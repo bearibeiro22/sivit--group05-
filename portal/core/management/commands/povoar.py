@@ -56,6 +56,9 @@ class Command(BaseCommand):
                 u.set_password(PASSWORD_DEMO)
                 u.save()
             u.groups.set([Group.objects.get(name=grupo)])
+            if u.is_staff != (grupo == "medico"):
+                u.is_staff = grupo == "medico"
+                u.save(update_fields=["is_staff"])
             PerfilUtilizador.objects.update_or_create(utilizador=u, defaults={"enfermaria": enf})
 
         if opts["alarme"] or not Alarme.objects.exists():

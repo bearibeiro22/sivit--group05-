@@ -47,7 +47,7 @@ Criadas no arranque pelo comando `povoar` (variável `SIVIT_POVOAR=1`). Palavra-
 |---|---|---|
 | `enfermeiro1`, `enfermeiro2` | enfermeiro | Medicina Interna A; reconhece alarmes |
 | `enfermeiro3` | enfermeiro | Medicina Interna B; reconhece alarmes |
-| `medico1` | médico | todas as enfermarias; gere doentes e internamentos (API) |
+| `medico1` | médico | todas as enfermarias; gere doentes, internamentos e dispositivos (em /admin/ e na API) |
 
 Administrador (opcional):
 

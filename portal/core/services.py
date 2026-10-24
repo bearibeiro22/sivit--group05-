@@ -29,6 +29,8 @@ class ConflitoNegocio(Exception):
 
 def auditar(utilizador, acao, caminho, correlation_id="", doente=None):
     correlation_id = correlation_id or get_correlation_id()
+    if correlation_id == "-":
+        correlation_id = ""
     RegistoAuditoria.objects.create(
         utilizador=utilizador, doente=doente, acao=acao,
         caminho=caminho, correlation_id=correlation_id,
