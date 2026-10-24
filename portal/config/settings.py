@@ -47,6 +47,7 @@ INSTALLED_APPS = [
 ]
 
 MIDDLEWARE = [
+    'core.middleware.CorrelationIdMiddleware',
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
@@ -151,3 +152,21 @@ LOGIN_REDIRECT_URL = 'painel'
 LOGOUT_REDIRECT_URL = 'login'
 
 STATIC_ROOT = BASE_DIR / 'staticfiles'
+
+
+LOGGING = {
+    "version": 1,
+    "disable_existing_loggers": False,
+    "filters": {"correlacao": {"()": "core.logs.FiltroCorrelacao"}},
+    "formatters": {"json": {"()": "core.logs.FormatadorJson"}},
+    "handlers": {
+        "consola": {
+            "class": "logging.StreamHandler",
+            "stream": "ext://sys.stdout",
+            "filters": ["correlacao"],
+            "formatter": "json",
+        },
+    },
+    "root": {"handlers": ["consola"], "level": os.environ.get("LOG_LEVEL", "INFO")},
+    "loggers": {"django.request": {"level": "ERROR"}},
+}

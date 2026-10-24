@@ -31,7 +31,7 @@ services:
         python manage.py criar_grupos
         python manage.py collectstatic --noinput -v 0
         if [ "$${SIVIT_POVOAR:-0}" = "1" ]; then python manage.py povoar; fi
-        exec gunicorn config.wsgi:application --bind 0.0.0.0:8000 --workers "$${GUNICORN_WORKERS:-3}" --access-logfile - --error-logfile -
+        exec gunicorn config.wsgi:application --bind 0.0.0.0:8000 --workers "$${GUNICORN_WORKERS:-3}" --error-logfile -
     depends_on:
       db:
         condition: service_healthy

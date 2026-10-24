@@ -1,8 +1,13 @@
+import logging
+
 from django.core.exceptions import PermissionDenied
 from django.db import IntegrityError, transaction
 from django.utils import timezone
 
+from .logs import get_correlation_id
 from .models import Alarme, Dispositivo, Internamento, RegistoAuditoria
+
+logger = logging.getLogger("sivit.portal")
 
 
 class AlarmeNaoEncontrado(Exception):
@@ -23,10 +28,14 @@ class ConflitoNegocio(Exception):
 
 
 def auditar(utilizador, acao, caminho, correlation_id="", doente=None):
+    correlation_id = correlation_id or get_correlation_id()
     RegistoAuditoria.objects.create(
         utilizador=utilizador, doente=doente, acao=acao,
         caminho=caminho, correlation_id=correlation_id,
     )
+    logger.info("auditoria", extra={"acao": acao, "caminho": caminho,
+                                    "doente_id": doente.pk if doente else None,
+                                    "utilizador": utilizador.username})
 
 
 def _enfermaria_do_alarme(alarme):
@@ -66,18 +75,16 @@ def reconhecer_alarme(alarme_id, utilizador, correlation_id=""):
         )
         if afetadas == 0:
             atual = Alarme.objects.select_related("reconhecido_por").get(pk=alarme_id)
+            logger.info("alarme_ja_reconhecido", extra={
+                "alarme_id": alarme_id, "utilizador": utilizador.username,
+                "reconhecido_por": atual.reconhecido_por.username if atual.reconhecido_por else None})
             raise AlarmeJaReconhecido(atual.reconhecido_por, atual.reconhecido_em)
 
         internamento = Internamento.objects.filter(
             cama=alarme.dispositivo.cama, data_saida__isnull=True
         ).first()
-        RegistoAuditoria.objects.create(
-            utilizador=utilizador,
-            doente=internamento.doente if internamento else None,
-            acao="reconhecer_alarme",
-            caminho=f"alarme/{alarme_id}",
-            correlation_id=correlation_id,
-        )
+        auditar(utilizador, "reconhecer_alarme", f"alarme/{alarme_id}", correlation_id,
+                internamento.doente if internamento else None)
 
     alarme.refresh_from_db()
     return alarme
