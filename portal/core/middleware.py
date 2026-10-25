@@ -24,7 +24,7 @@ class CorrelationIdMiddleware:
             utilizador = getattr(request, "user", None)
             nome = utilizador.username if utilizador is not None and utilizador.is_authenticated else "-"
             # os healthchecks (de 10 em 10 s) ficam em DEBUG para nao encher os logs
-            nivel = logging.DEBUG if request.path.startswith("/saude/") else logging.INFO
+            nivel = logging.DEBUG if request.path.startswith(("/saude/", "/painel/estado/")) else logging.INFO
             logger.log(nivel, "pedido", extra={
                 "metodo": request.method,
                 "caminho": request.path,

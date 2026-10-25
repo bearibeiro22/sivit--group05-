@@ -56,11 +56,12 @@ class PainelTests(TestCase):
         self.assertContains(r, "Alice Sintetica")
         self.assertContains(r, "Bruno Sintetico")
         self.assertContains(r, "FC = 190")
-        self.assertNotContains(r, "Reconhecer")
+        self.assertNotContains(r, '>Reconhecer</button>')
+        self.assertNotContains(r, "data-texto-botao")
 
     def test_enfermeiro_ve_botao(self):
         self.client.force_login(self.enf_a)
-        self.assertContains(self.client.get("/"), "Reconhecer")
+        self.assertContains(self.client.get("/"), '<button type="submit">Reconhecer</button>')
 
     def test_acesso_ao_painel_fica_auditado(self):
         self.client.force_login(self.enf_a)

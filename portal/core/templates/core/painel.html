@@ -1,21 +1,30 @@
 {% extends "core/base.html" %}
-{% block head %}<meta http-equiv="refresh" content="3">{% endblock %}
+{% block head %}<noscript><meta http-equiv="refresh" content="10"></noscript>{% endblock %}
 {% block conteudo %}
 <h1>Painel de enfermaria</h1>
-<p>Alarmes ativos: <strong>{{ total_alarmes }}</strong> (atualiza a cada 3 s)</p>
+<p>Alarmes ativos: <strong id="total-alarmes">{{ total_alarmes }}</strong>
+  <span id="estado-painel" class="vago">(atualiza a cada {{ intervalo_ms }} ms)</span></p>
+<div id="aviso-painel" class="msg error" hidden>Sem ligação ao servidor. A tentar de novo…</div>
+
+<div id="painel-cfg" hidden
+     data-url="{% url 'painel-estado' %}"
+     data-intervalo="{{ intervalo_ms }}"
+     data-versao="{{ versao }}"
+     {% if perms.core.change_alarme %}data-csrf="{{ csrf_token }}" data-url-reconhecer="{% url 'reconhecer' 0 %}" data-texto-botao="Reconhecer"{% endif %}></div>
+
 {% if not linhas %}<p>Sem camas para mostrar.</p>{% endif %}
 <table>
   <tr><th>Enfermaria</th><th>Cama</th><th>Dispositivo</th><th>Doente</th><th>Alarmes ativos</th></tr>
   {% for l in linhas %}
-  <tr class="{% if l.alarmes %}alarme{% endif %}">
+  <tr data-cama="{{ l.cama.pk }}" class="{% if l.alarmes %}alarme{% endif %}">
     <td>{{ l.cama.enfermaria }}</td>
     <td>{{ l.cama.numero }}</td>
     <td>{{ l.cama.dispositivo.codigo|default:"-" }}</td>
     <td>{% if l.internamento %}{{ l.internamento.doente.nome }}{% else %}<span class="vago">vago</span>{% endif %}</td>
-    <td>
+    <td class="alarmes">
       {% for a in l.alarmes %}
         <div>
-          {{ a.parametro }} = {{ a.valor }} ({{ a.regra }}) às {{ a.criado_em|date:"H:i:s" }}
+          {{ a.parametro }} = {{ a.valor|floatformat:"-1" }} ({{ a.regra }}) às {{ a.criado_em|date:"H:i:s" }}
           {% if perms.core.change_alarme %}
           <form method="post" action="{% url 'reconhecer' a.pk %}" style="display:inline">
             {% csrf_token %}<button type="submit">Reconhecer</button>
@@ -27,4 +36,73 @@
   </tr>
   {% endfor %}
 </table>
+
+<script>
+(function () {
+  var cfg = document.getElementById("painel-cfg");
+  var url = cfg.dataset.url;
+  var intervalo = parseInt(cfg.dataset.intervalo, 10) || 1000;
+  var versao = cfg.dataset.versao;
+  var csrf = cfg.dataset.csrf || "";
+  var urlBase = cfg.dataset.urlReconhecer || "";
+  var textoBotao = cfg.dataset.textoBotao || "";
+  var total = document.getElementById("total-alarmes");
+  var estado = document.getElementById("estado-painel");
+  var aviso = document.getElementById("aviso-painel");
+  var anterior = null;
+
+  function formularioReconhecer(id) {
+    var f = document.createElement("form");
+    f.method = "post";
+    f.action = urlBase.replace("/0/", "/" + id + "/");
+    f.style.display = "inline";
+    var t = document.createElement("input");
+    t.type = "hidden";
+    t.name = "csrfmiddlewaretoken";
+    t.value = csrf;
+    var b = document.createElement("button");
+    b.type = "submit";
+    b.textContent = textoBotao;
+    f.appendChild(t);
+    f.appendChild(b);
+    return f;
+  }
+
+  function desenhar(alarmes) {
+    document.querySelectorAll("tr[data-cama]").forEach(function (tr) {
+      var lista = alarmes[tr.dataset.cama] || [];
+      var cel = tr.querySelector(".alarmes");
+      cel.textContent = "";
+      lista.forEach(function (a) {
+        var div = document.createElement("div");
+        div.appendChild(document.createTextNode(a.parametro + " = " + String(a.valor).replace(".", ",") + " (" + a.regra + ") às " + a.hora + " "));
+        if (textoBotao && urlBase) { div.appendChild(formularioReconhecer(a.id)); }
+        cel.appendChild(div);
+      });
+      tr.classList.toggle("alarme", lista.length > 0);
+    });
+  }
+
+  function ciclo() {
+    fetch(url, { credentials: "same-origin", headers: { "Accept": "application/json" } })
+      .then(function (r) {
+        if (r.redirected) { location.reload(); throw new Error("sessao"); }
+        if (!r.ok) { throw new Error("http " + r.status); }
+        return r.json();
+      })
+      .then(function (d) {
+        aviso.hidden = true;
+        if (d.versao !== versao) { location.reload(); return; }
+        var atual = JSON.stringify(d.alarmes);
+        if (atual !== anterior) { desenhar(d.alarmes); anterior = atual; }
+        total.textContent = d.total;
+        estado.textContent = "(atualizado às " + new Date().toLocaleTimeString("pt-PT") + ")";
+      })
+      .catch(function () { aviso.hidden = false; })
+      .then(function () { setTimeout(ciclo, intervalo); });
+  }
+
+  ciclo();
+})();
+</script>
 {% endblock %}
